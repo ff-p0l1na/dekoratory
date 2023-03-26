@@ -42,8 +42,7 @@ class Manager:
 
 # Stwórz instancję klasy Manager:
 manager = Manager()
-polecenie = input("Wpisz polecenie: \n")
-
+polecenie = input('Wpisz wybrane polecenie: \n')
 
 # Funkcjonalności:
 #
