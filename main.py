@@ -87,18 +87,20 @@ def sprzedaj(manager):
     nazwa_produktu = input("Podaj nazwę produktu: \n")
     liczba_sztuk = int(input("Podaj ilość: \n"))
     cena = float(input("Podaj cenę jednostkową produktu: \n"))
-    with open('saldo.txt', 'r') as sld:  # dostęp do pliku ze stanem konta
-        stan_konta_z_pliku = sld.readline()
+    with open('saldo.txt', 'r') as sldo:  # dostęp do pliku ze stanem konta
+        stan_konta_z_pliku = sldo.readline()
         stan_konta = float(stan_konta_z_pliku)
     with open('magazyn.json', 'r') as m:  # otwarcie pliku ze stanem magazynowym
         magazyn = json.load(m)
     if nazwa_produktu not in magazyn:  # scenariusz, jeśli produkt nie istnieje w magazynie
         print(f"Nie można sprzedać produktu \"{nazwa_produktu}\", gdyż nie ma go na stanie.\n")
+        exit()
     elif nazwa_produktu in magazyn:  # scenariusz, jeśli produkt istnieje w magazynie
         dostepna_ilosc = magazyn[nazwa_produktu][0]
         zatwierdz_dostepnosc = dostepna_ilosc - liczba_sztuk
         if zatwierdz_dostepnosc <= 0:  # scenariusz, gdy produkt istnieje, ale nie w wystarczającej ilości
             print(f"Nie można sprzedać \"{nazwa_produktu}\". Na magazynie zostało: {dostepna_ilosc}. \n")
+            exit()
         elif zatwierdz_dostepnosc > 0:  # gdy produkt istnieje i jest go wystarczająca ilość
             magazyn[nazwa_produktu][0] = zatwierdz_dostepnosc
             zysk = cena * liczba_sztuk
@@ -126,6 +128,7 @@ def kupuj(manager):
     if sprawdz_stan_konta < 0:
         print("Uwaga! Nieprawidłowy stan konta po zakończeniu tej operacji. \n"
               "Operacja niedozwolona. Przerywam akcję. \n")
+        exit()
     elif sprawdz_stan_konta > 0:
         pass
     if nazwa_produktu not in magazyn:  # scenariusz, jeśli produkt nie istnieje w magazynie
