@@ -179,9 +179,12 @@ def pokaz_magazyn(manager):
 
 
 # "Przegląd" - Wyświetla wszystkie wprowadzone akcje. Pobiera dane z pliku "history.txt".
-# @manager.assign("przegląd")
-# def saldo(manager):
-#     print("saldo")
+@manager.assign("przegląd")
+def historia(manager):
+    with open('history.txt', 'r') as h:
+        hist_list = list(h)
+        for item in hist_list:
+            print(item.strip())
 
 
 # "Koniec" - Program kończy działanie.
