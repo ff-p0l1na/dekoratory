@@ -21,6 +21,7 @@ if not os.path.isfile('magazyn.json'):
 class Manager:
     def __init__(self):
         self.actions = {}
+        self.history = []
 
     def assign(self, name):
         def decorate(cb):
@@ -33,13 +34,18 @@ class Manager:
             print("Nie ma takiej opcji.")
         else:
             self.actions[name](self)
+            self.history.append(name)
+            with open('history.txt', 'a') as hf:
+                for item in self.history:
+                    hf.write(item + '\n')
 
 
 # Stwórz instancję klasy Manager:
 manager = Manager()
+polecenie = input("Wpisz polecenie: \n")
 
 
-# Fragmenty:
+# Funkcjonalności:
 #
 # "Saldo" - pobierz/dodaj; pozwala pobrać/dodać środki na konto. Pobiera stan konta z pliku.
 # Zapisuje ostateczny stan konta z powrotem do pliku 'saldo.txt'.
@@ -63,7 +69,7 @@ def zmien_saldo(manager):
                     print(f"Pobrano {kwota_do_pobrania} PLN. \n"
                           f"Na koncie pozostało {stan_konta} PLN. ")
         elif decyzja_dla_salda == "dodaj":
-            kwota_do_dodania = float(input("Wpisz kwotę do dodania: "))
+            kwota_do_dodania = float(input("Wpisz kwotę do dodania: \n"))
             if kwota_do_dodania < 0:
                 print("Uspokój się, dodawana kwota musi być większa od 0. Spróbuj ponownie.\n")
             elif kwota_do_dodania >= 0:
@@ -73,12 +79,35 @@ def zmien_saldo(manager):
                 print(f"Dodano {kwota_do_dodania} PLN.\n"
                       f"Aktualny stan konta to {stan_konta} PLN. \n")
 
+
 # "Sprzedaż" - Pobiera z inputu nazwę produktu, cenę oraz liczbę sztuk.
 # Odejmuje ze stanu magazynowego, dodaje do stanu konta.
 # Korzysta z plików "magazyn.json" i "saldo.txt".
-# @manager.assign("sprzedaż")
-# def saldo(manager):
-#     print("saldo")
+@manager.assign("sprzedaż")
+def sprzedaj(manager):
+    nazwa_produktu = input("Podaj nazwę produktu: \n")
+    liczba_sztuk = int(input("Podaj ilość: \n"))
+    cena = float(input("Podaj cenę jednostkową produktu: \n"))
+    with open('saldo.txt', 'r') as sld:  # dostęp do pliku ze stanem konta
+        stan_konta_z_pliku = sld.readline()
+        stan_konta = float(stan_konta_z_pliku)
+    with open('magazyn.json', 'r') as m:  # otwarcie pliku ze stanem magazynowym
+        magazyn = json.load(m)
+    if nazwa_produktu not in magazyn:  # scenariusz, jeśli produkt nie istnieje w magazynie
+        print(f"Nie można sprzedać produktu \"{nazwa_produktu}\", gdyż nie ma go na stanie.\n")
+    elif nazwa_produktu in magazyn:  # scenariusz, jeśli produkt istnieje w magazynie
+        dostepna_ilosc = magazyn[nazwa_produktu][0]
+        zatwierdz_dostepnosc = dostepna_ilosc - liczba_sztuk
+        if zatwierdz_dostepnosc <= 0:  # scenariusz, gdy produkt istnieje, ale nie w wystarczającej ilości
+            print(f"Nie można sprzedać \"{nazwa_produktu}\". Na magazynie zostało: {dostepna_ilosc}. \n")
+        elif zatwierdz_dostepnosc > 0:  # gdy produkt istnieje i jest go wystarczająca ilość
+            magazyn[nazwa_produktu][0] = zatwierdz_dostepnosc
+            zysk = cena * liczba_sztuk
+            stan_konta += zysk
+            with open('saldo.txt', 'w') as sl:
+                sl.write(str(stan_konta))
+            with open('magazyn.json', 'w') as mg:
+                json.dump(magazyn, mg)
 
 
 # "Zakup" - Pobiera nazwę produktu, cenę oraz liczbę sztuk.
@@ -130,14 +159,23 @@ def pokaz_konto(manager):
 def pokaz_magazyn(manager):
     with open('magazyn.json', 'r') as mag_file:
         lista = json.load(mag_file)
-        pprint(lista)
+        pprint(lista, indent=2)
 
 
 # "Magazyn" - Wyświetla stan magazynu dla konkretnego produktu. Pobiera z inputu nazwę produktu.
 # Pobiera dane z pliku "magazyn.json".
-# @manager.assign("magazyn")
-# def saldo(manager):
-#     print("saldo")
+@manager.assign("magazyn")
+def pokaz_magazyn(manager):
+    wybrany_produkt = input("Podaj nazwę produktu, \n"
+                            "dla którego chcesz poznać stan magazynowy.\n")
+    with open('magazyn.json', 'r') as mag:
+        magazyn = json.load(mag)
+    if wybrany_produkt not in magazyn:
+        print(f"Brak produktu \"{wybrany_produkt}\" w magazynie.\n")
+    elif wybrany_produkt in magazyn:
+        print(f"Stan magazynowy dla produktu \"{wybrany_produkt}\":\n"
+              f"Ilość: {magazyn[wybrany_produkt][0]} \n"
+              f"Cena: {magazyn[wybrany_produkt][1]} PLN \n")
 
 
 # "Przegląd" - Wyświetla wszystkie wprowadzone akcje. Pobiera dane z pliku "history.txt".
@@ -152,4 +190,6 @@ def zakoncz(manager):
     exit()
 
 
-manager.execute("zakup")
+# Wykonaj wpisane polecenie:
+manager.execute(polecenie)
+
