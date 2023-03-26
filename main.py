@@ -1,6 +1,7 @@
 import json
 import os
-
+from pprint import pprint
+# Stwórz pliki "bazy danych" dla historii operacji, stanu konta i stanu magazynu:
 if not os.path.isfile('history.txt'):
     with open('history.txt', 'w') as fh:
         fh.write("Historia operacji: \n")
@@ -12,6 +13,9 @@ if not os.path.isfile('saldo.txt'):
 if not os.path.isfile('magazyn.json'):
     with open('magazyn.json', 'w') as fm:
         json.dump({}, fm)
+
+# Stwórz klasę Manager, która będzie implementowała dwie kluczowe metody: execute i assign.
+# Przy ich użyciu wywołuj poszczególne fragmenty aplikacji.
 
 
 class Manager:
@@ -31,11 +35,16 @@ class Manager:
             self.actions[name](self)
 
 
+# Stwórz instancję klasy Manager:
 manager = Manager()
 
 
+# Fragmenty:
+#
+# "Saldo" - pobierz/dodaj; pozwala pobrać/dodać środki na konto. Pobiera stan konta z pliku.
+# Zapisuje ostateczny stan konta z powrotem do pliku 'saldo.txt'.
 @manager.assign("saldo")
-def saldo(manager):
+def zmien_saldo(manager):
     with open('saldo.txt', 'r') as f:
         stan_konta_z_pliku = f.readline()
         stan_konta = float(stan_konta_z_pliku)
@@ -64,35 +73,83 @@ def saldo(manager):
                 print(f"Dodano {kwota_do_dodania} PLN.\n"
                       f"Aktualny stan konta to {stan_konta} PLN. \n")
 
+# "Sprzedaż" - Pobiera z inputu nazwę produktu, cenę oraz liczbę sztuk.
+# Odejmuje ze stanu magazynowego, dodaje do stanu konta.
+# Korzysta z plików "magazyn.json" i "saldo.txt".
+# @manager.assign("sprzedaż")
+# def saldo(manager):
+#     print("saldo")
 
-@manager.assign("sprzedaż")
-def saldo(manager):
-    print("saldo")
 
+# "Zakup" - Pobiera nazwę produktu, cenę oraz liczbę sztuk.
+# Dodaje do stanu magazynowego, odejmuje ze stanu konta.
+# Korzysta z plików "magazyn.json" i "saldo.txt".
 @manager.assign("zakup")
-def saldo(manager):
-    print("saldo")
+def kupuj(manager):
+    nazwa_produktu = input("Podaj nazwę produktu: \n")
+    liczba_sztuk = int(input("Podaj ilość: \n"))
+    cena = float(input("Podaj cenę jednostkową produktu: \n"))
+    with open('saldo.txt', 'r') as sld:  # dostęp do pliku ze stanem konta
+        stan_konta_z_pliku = sld.readline()
+        stan_konta = float(stan_konta_z_pliku)
+    with open('magazyn.json', 'r') as m:  # otwarcie pliku ze stanem magazynowym
+        magazyn = json.load(m)
+    sprawdz_stan_konta = stan_konta - liczba_sztuk * cena  # walidacja stanu konta
+    if sprawdz_stan_konta < 0:
+        print("Uwaga! Nieprawidłowy stan konta po zakończeniu tej operacji. \n"
+              "Operacja niedozwolona. Przerywam akcję. \n")
+    elif sprawdz_stan_konta > 0:
+        pass
+    if nazwa_produktu not in magazyn:  # scenariusz, jeśli produkt nie istnieje w magazynie
+        magazyn[str(nazwa_produktu)] = [liczba_sztuk, cena]
+        with open('magazyn.json', 'w') as m:
+            json.dump(magazyn, m)
+        stan_konta -= int(liczba_sztuk) * float(cena)
+        with open('saldo.txt', 'w') as f:
+            f.write(str(stan_konta))
+    elif nazwa_produktu in magazyn:  # scenariusz, jeśli produkt istnieje w magazynie
+        magazyn[str(nazwa_produktu)][0] += liczba_sztuk
+        magazyn[str(nazwa_produktu)][1] = cena  # aktualizuje cenę w magazynie dla wszystkich sztuk
+        with open('magazyn.json', 'w') as mm:
+            json.dump(magazyn, mm)
+        stan_konta -= int(liczba_sztuk) * float(cena)
+        with open('saldo.txt', 'w') as f:
+            f.write(str(stan_konta))
 
+
+# "Konto" - pokazuje aktualny stan konta. Pobiera dane z pliku "saldo.txt".
 @manager.assign("konto")
-def saldo(manager):
+def pokaz_konto(manager):
     with open('saldo.txt', 'r') as f:
         stan_konta = f.readline()
     print(f"Aktualny stan konta wynosi {stan_konta} PLN.")
 
+
+# "Lista" - pokazuje aktualny stan całego magazynu. Pobiera dane z pliku "magazyn.json".
 @manager.assign("lista")
-def saldo(manager):
-    print("saldo")
+def pokaz_magazyn(manager):
+    with open('magazyn.json', 'r') as mag_file:
+        lista = json.load(mag_file)
+        pprint(lista)
 
-@manager.assign("magazyn")
-def saldo(manager):
-    print("saldo")
 
-@manager.assign("przegląd")
-def saldo(manager):
-    print("saldo")
+# "Magazyn" - Wyświetla stan magazynu dla konkretnego produktu. Pobiera z inputu nazwę produktu.
+# Pobiera dane z pliku "magazyn.json".
+# @manager.assign("magazyn")
+# def saldo(manager):
+#     print("saldo")
 
+
+# "Przegląd" - Wyświetla wszystkie wprowadzone akcje. Pobiera dane z pliku "history.txt".
+# @manager.assign("przegląd")
+# def saldo(manager):
+#     print("saldo")
+
+
+# "Koniec" - Program kończy działanie.
 @manager.assign("koniec")
-def konczyciel(manager):
+def zakoncz(manager):
     exit()
 
-manager.execute("konto")
+
+manager.execute("zakup")
